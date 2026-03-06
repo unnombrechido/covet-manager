@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
+import { useTranslations, useLocale } from 'next-intl'
 
 interface Show {
   id: number
@@ -23,10 +24,12 @@ interface Rally {
   shows: Show[]
 }
 
-const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
-const SHOW_TYPES = ['regular', 'special', 'mega', 'epic', 'legendary']
-
 export default function RallyDetailPage() {
+  const t = useTranslations('rallies')
+  const tc = useTranslations('common')
+  const tMonths = useTranslations('months')
+  const tTypes = useTranslations('showTypes')
+  const locale = useLocale()
   const params = useParams()
   const rallyId = params.id as string
 
@@ -37,13 +40,15 @@ export default function RallyDetailPage() {
   const [error, setError] = useState('')
   const [formData, setFormData] = useState({ name: '', code: '', showType: 'regular' })
 
+  const showTypes = ['regular', 'special', 'mega', 'epic', 'legendary'] as const
+
   const fetchRally = useCallback(async () => {
     try {
       const res = await fetch(`/api/rallies/${rallyId}`)
       if (!res.ok) throw new Error()
       setRally(await res.json())
     } catch {
-      setError('Failed to load rally')
+      setError(t('loadRallyError'))
     } finally {
       setLoading(false)
     }
@@ -62,27 +67,29 @@ export default function RallyDetailPage() {
       })
       if (!res.ok) {
         const d = await res.json()
-        setError(d.error || 'Failed to add show')
+        setError(d.error || t('addShowError'))
         return
       }
       setFormData({ name: '', code: '', showType: 'regular' })
       setShowForm(false)
       fetchRally()
     } catch {
-      setError('Failed to add show')
+      setError(t('addShowError'))
     }
   }
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
-      <div className="text-gray-500 text-lg animate-pulse">Loading rally...</div>
+      <div className="text-gray-500 text-lg animate-pulse">{tc('loading')}</div>
     </div>
   )
 
   if (!rally) return (
     <div className="text-center py-16 text-red-500">
-      <p>Rally not found.</p>
-      <Link href="/rallies" className="text-purple-600 hover:underline mt-2 inline-block">← Back to Rallies</Link>
+      <p>{t('rallyNotFound')}</p>
+      <Link href={`/${locale}/rallies`} className="text-purple-600 hover:underline mt-2 inline-block">
+        {t('backToRallies')}
+      </Link>
     </div>
   )
 
@@ -97,22 +104,22 @@ export default function RallyDetailPage() {
   return (
     <div>
       <div className="flex items-center gap-2 mb-2">
-        <Link href="/rallies" className="text-purple-600 hover:text-purple-800 dark:text-purple-400 text-sm">
-          ← Rallies
+        <Link href={`/${locale}/rallies`} className="text-purple-600 hover:text-purple-800 dark:text-purple-400 text-sm">
+          {t('backToRallies')}
         </Link>
       </div>
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{rally.name}</h1>
           <p className="text-gray-500 dark:text-gray-400">
-            {MONTHS[rally.month - 1]} {rally.year} · 🏠 {rally.house.name}
+            {tMonths(String(rally.month) as '1')} {rally.year} · 🏠 {rally.house.name}
           </p>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
           className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
         >
-          {showForm ? 'Cancel' : '+ Add Show'}
+          {showForm ? tc('cancel') : `+ ${t('addShow')}`}
         </button>
       </div>
 
@@ -123,57 +130,57 @@ export default function RallyDetailPage() {
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow border border-gray-200 dark:border-gray-700 text-center">
           <div className="text-2xl font-bold text-purple-600">{rally.shows.length}</div>
-          <div className="text-sm text-gray-500 dark:text-gray-400">Total Shows</div>
+          <div className="text-sm text-gray-500 dark:text-gray-400">{t('totalShows')}</div>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow border border-gray-200 dark:border-gray-700 text-center">
           <div className="text-2xl font-bold text-purple-600">{rally.shows.reduce((sum, s) => sum + s._count.scores, 0)}</div>
-          <div className="text-sm text-gray-500 dark:text-gray-400">Score Entries</div>
+          <div className="text-sm text-gray-500 dark:text-gray-400">{t('scoreEntries')}</div>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow border border-gray-200 dark:border-gray-700 text-center">
           <div className="text-2xl font-bold text-purple-600">{totalScore.toFixed(0)}</div>
-          <div className="text-sm text-gray-500 dark:text-gray-400">Total Score</div>
+          <div className="text-sm text-gray-500 dark:text-gray-400">{t('totalScore')}</div>
         </div>
       </div>
 
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow mb-6 border border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Add Show</h2>
+          <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">{t('addShowTitle')}</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Show Name</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('showName')}</label>
               <input
                 type="text"
                 required
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
-                placeholder="e.g., Winter Gala"
+                placeholder={t('showNamePlaceholder')}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Code</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('showCode')}</label>
               <input
                 type="text"
                 required
                 value={formData.code}
                 onChange={(e) => setFormData({ ...formData, code: e.target.value })}
                 className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
-                placeholder="e.g., WG01"
+                placeholder={t('showCodePlaceholder')}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Show Type</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('showType')}</label>
               <select
                 value={formData.showType}
                 onChange={(e) => setFormData({ ...formData, showType: e.target.value })}
                 className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
               >
-                {SHOW_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                {showTypes.map(tp => <option key={tp} value={tp}>{tTypes(tp)}</option>)}
               </select>
             </div>
           </div>
           <button type="submit" className="mt-4 bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
-            Add Show
+            {t('addShowBtn')}
           </button>
         </form>
       )}
@@ -181,7 +188,7 @@ export default function RallyDetailPage() {
       <div className="mb-4">
         <input
           type="text"
-          placeholder="Search shows by name or code..."
+          placeholder={t('searchShows')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
@@ -191,7 +198,7 @@ export default function RallyDetailPage() {
       {filteredShows.length === 0 ? (
         <div className="text-center py-16 text-gray-500">
           <div className="text-5xl mb-4">📋</div>
-          <p className="text-lg">{rally.shows.length === 0 ? 'No shows yet. Add your first show!' : 'No shows match your search.'}</p>
+          <p className="text-lg">{rally.shows.length === 0 ? t('noShows') : t('noShowsMatch')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -201,7 +208,7 @@ export default function RallyDetailPage() {
             return (
               <Link
                 key={show.id}
-                href={`/rallies/${rallyId}/shows/${show.id}`}
+                href={`/${locale}/rallies/${rallyId}/shows/${show.id}`}
                 className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow border border-gray-200 dark:border-gray-700 hover:border-purple-400 hover:shadow-lg transition-all group"
               >
                 <div className="flex items-start justify-between mb-2">
@@ -209,15 +216,15 @@ export default function RallyDetailPage() {
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400">
                       {show.name}
                     </h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Code: {show.code}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{t('showCode')}: {show.code}</p>
                   </div>
                   <span className="px-2 py-1 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 rounded-full text-xs font-medium">
-                    {show.showType}
+                    {tTypes(show.showType as 'regular')}
                   </span>
                 </div>
                 <div className="flex gap-4 text-sm text-gray-500 dark:text-gray-400">
-                  <span>👥 {participants} participants</span>
-                  <span>🎯 {showTotal.toFixed(0)} pts total</span>
+                  <span>👥 {participants} {t('participants')}</span>
+                  <span>🎯 {showTotal.toFixed(0)} {t('ptsTotal')}</span>
                 </div>
               </Link>
             )

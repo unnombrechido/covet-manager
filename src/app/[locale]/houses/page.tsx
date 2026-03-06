@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useTranslations } from 'next-intl'
 
 interface House {
   id: number
@@ -13,6 +14,9 @@ interface House {
 }
 
 export default function HousesPage() {
+  const t = useTranslations('houses')
+  const tc = useTranslations('common')
+
   const [houses, setHouses] = useState<House[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -25,7 +29,7 @@ export default function HousesPage() {
       const data = await res.json()
       setHouses(data)
     } catch {
-      setError('Failed to load houses')
+      setError(t('loadError'))
     } finally {
       setLoading(false)
     }
@@ -44,14 +48,14 @@ export default function HousesPage() {
       })
       if (!res.ok) {
         const d = await res.json()
-        setError(d.error || 'Failed to create house')
+        setError(d.error || t('createError'))
         return
       }
       setFormData({ name: '', covetName: '', ownerName: '' })
       setShowForm(false)
       fetchHouses()
     } catch {
-      setError('Failed to create house')
+      setError(t('createError'))
     }
   }
 
@@ -64,25 +68,25 @@ export default function HousesPage() {
       })
       fetchHouses()
     } catch {
-      setError('Failed to update house')
+      setError(t('updateError'))
     }
   }
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
-      <div className="text-gray-500 text-lg animate-pulse">Loading houses...</div>
+      <div className="text-gray-500 text-lg animate-pulse">{tc('loading')}</div>
     </div>
   )
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">🏠 Houses</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">🏠 {t('title')}</h1>
         <button
           onClick={() => setShowForm(!showForm)}
           className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
         >
-          {showForm ? 'Cancel' : '+ Add House'}
+          {showForm ? tc('cancel') : `+ ${t('addHouse')}`}
         </button>
       </div>
 
@@ -94,44 +98,44 @@ export default function HousesPage() {
 
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow mb-6 border border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Add New House</h2>
+          <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">{t('addNewHouse')}</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">House Name</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('houseName')}</label>
               <input
                 type="text"
                 required
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
-                placeholder="e.g., House of Stars"
+                placeholder={t('houseNamePlaceholder')}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Covet Name</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('covetName')}</label>
               <input
                 type="text"
                 required
                 value={formData.covetName}
                 onChange={(e) => setFormData({ ...formData, covetName: e.target.value })}
                 className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
-                placeholder="In-game house name"
+                placeholder={t('covetNamePlaceholder')}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Owner Name</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('ownerName')}</label>
               <input
                 type="text"
                 required
                 value={formData.ownerName}
                 onChange={(e) => setFormData({ ...formData, ownerName: e.target.value })}
                 className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
-                placeholder="Owner's name"
+                placeholder={t('ownerNamePlaceholder')}
               />
             </div>
           </div>
           <button type="submit" className="mt-4 bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
-            Create House
+            {t('createHouse')}
           </button>
         </form>
       )}
@@ -139,7 +143,7 @@ export default function HousesPage() {
       {houses.length === 0 ? (
         <div className="text-center py-16 text-gray-500">
           <div className="text-5xl mb-4">🏠</div>
-          <p className="text-lg">No houses yet. Add your first house!</p>
+          <p className="text-lg">{t('noHouses')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -151,16 +155,16 @@ export default function HousesPage() {
                   <p className="text-sm text-gray-500 dark:text-gray-400">@{house.covetName}</p>
                 </div>
                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${house.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                  {house.isActive ? 'Active' : 'Inactive'}
+                  {house.isActive ? tc('active') : tc('inactive')}
                 </span>
               </div>
               <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
-                <span className="font-medium">Owner:</span> {house.ownerName}
+                <span className="font-medium">{t('ownerName')}:</span> {house.ownerName}
               </p>
               {house._count && (
                 <div className="flex gap-4 text-sm text-gray-500 dark:text-gray-400 mb-4">
-                  <span>👥 {house._count.members} members</span>
-                  <span>🏆 {house._count.rallies} rallies</span>
+                  <span>👥 {house._count.members} {tc('members')}</span>
+                  <span>🏆 {house._count.rallies} {tc('rallies')}</span>
                 </div>
               )}
               <button
@@ -171,7 +175,7 @@ export default function HousesPage() {
                     : 'bg-green-100 hover:bg-green-200 text-green-700 dark:bg-green-900/30 dark:hover:bg-green-900/50 dark:text-green-400'
                 }`}
               >
-                {house.isActive ? 'Deactivate' : 'Activate'}
+                {house.isActive ? tc('deactivate') : tc('activate')}
               </button>
             </div>
           ))}

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
+import { useTranslations, useLocale } from 'next-intl'
 
 interface Member {
   id: number
@@ -28,14 +29,11 @@ interface Show {
   rallyId: number
 }
 
-const ANNOTATIONS = [
-  { value: '', label: 'Participated' },
-  { value: "didn't participate", label: "Didn't Participate" },
-  { value: 'temporarily banned', label: 'Temporarily Banned' },
-  { value: 'other', label: 'Other' }
-]
-
 export default function ShowScorePage() {
+  const t = useTranslations('scores')
+  const tc = useTranslations('common')
+  const tTypes = useTranslations('showTypes')
+  const locale = useLocale()
   const params = useParams()
   const rallyId = params.id as string
   const showId = params.showId as string
@@ -47,6 +45,13 @@ export default function ShowScorePage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<number | null>(null)
   const [error, setError] = useState('')
+
+  const annotations = [
+    { value: '', label: t('annotations.participated') },
+    { value: "didn't participate", label: t('annotations.didntParticipate') },
+    { value: 'temporarily banned', label: t('annotations.temporarilyBanned') },
+    { value: 'other', label: t('annotations.other') },
+  ]
 
   const fetchData = useCallback(async () => {
     try {
@@ -75,7 +80,7 @@ export default function ShowScorePage() {
       })
       setScores(scoreMap)
     } catch {
-      setError('Failed to load data')
+      setError(t('loadError'))
     } finally {
       setLoading(false)
     }
@@ -98,7 +103,7 @@ export default function ShowScorePage() {
       })
       await fetchData()
     } catch {
-      setError('Failed to save score')
+      setError(t('saveError'))
     } finally {
       setSaving(null)
     }
@@ -113,7 +118,7 @@ export default function ShowScorePage() {
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
-      <div className="text-gray-500 text-lg animate-pulse">Loading show scores...</div>
+      <div className="text-gray-500 text-lg animate-pulse">{tc('loading')}</div>
     </div>
   )
 
@@ -123,18 +128,24 @@ export default function ShowScorePage() {
   return (
     <div>
       <div className="flex items-center gap-2 mb-2 text-sm text-gray-500">
-        <Link href="/rallies" className="text-purple-600 hover:text-purple-800 dark:text-purple-400">Rallies</Link>
+        <Link href={`/${locale}/rallies`} className="text-purple-600 hover:text-purple-800 dark:text-purple-400">
+          {t('breadcrumbRallies')}
+        </Link>
         <span>›</span>
-        <Link href={`/rallies/${rallyId}`} className="text-purple-600 hover:text-purple-800 dark:text-purple-400">Rally #{rallyId}</Link>
+        <Link href={`/${locale}/rallies/${rallyId}`} className="text-purple-600 hover:text-purple-800 dark:text-purple-400">
+          Rally #{rallyId}
+        </Link>
         <span>›</span>
-        <span>Score Entry</span>
+        <span>{t('breadcrumbScoreEntry')}</span>
       </div>
 
       {show && (
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{show.name}</h1>
-            <p className="text-gray-500 dark:text-gray-400">Code: {show.code} · Type: {show.showType}</p>
+            <p className="text-gray-500 dark:text-gray-400">
+              {t('code')}: {show.code} · {t('type')}: {tTypes(show.showType as 'regular')}
+            </p>
           </div>
         </div>
       )}
@@ -146,11 +157,11 @@ export default function ShowScorePage() {
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow border border-gray-200 dark:border-gray-700 text-center">
           <div className="text-2xl font-bold text-purple-600">{participantCount}</div>
-          <div className="text-sm text-gray-500 dark:text-gray-400">Participants</div>
+          <div className="text-sm text-gray-500 dark:text-gray-400">{t('participants')}</div>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow border border-gray-200 dark:border-gray-700 text-center">
           <div className="text-2xl font-bold text-purple-600">{totalScore.toFixed(0)}</div>
-          <div className="text-sm text-gray-500 dark:text-gray-400">Total Points</div>
+          <div className="text-sm text-gray-500 dark:text-gray-400">{t('totalPoints')}</div>
         </div>
       </div>
 
@@ -158,10 +169,10 @@ export default function ShowScorePage() {
         <table className="w-full">
           <thead className="bg-gray-50 dark:bg-gray-700">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Member</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Score</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Action</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">{t('member')}</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">{t('score')}</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">{t('status')}</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">{t('action')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -194,7 +205,7 @@ export default function ShowScorePage() {
                       onChange={(e) => handleScoreChange(member.id, 'annotation', e.target.value)}
                       className="border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
                     >
-                      {ANNOTATIONS.map(a => (
+                      {annotations.map(a => (
                         <option key={a.value} value={a.value}>{a.label}</option>
                       ))}
                     </select>
@@ -205,7 +216,7 @@ export default function ShowScorePage() {
                       disabled={isSaving}
                       className="bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white px-3 py-1 rounded text-sm font-medium transition-colors"
                     >
-                      {isSaving ? 'Saving...' : 'Save'}
+                      {isSaving ? tc('saving') : tc('save')}
                     </button>
                   </td>
                 </tr>

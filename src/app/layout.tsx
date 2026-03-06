@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 import './globals.css'
-import Navigation from '@/components/Navigation'
 
 export const metadata: Metadata = {
   title: 'Covet Manager',
@@ -13,13 +12,10 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
+    <html>
       <body className="font-sans">
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-          <Navigation />
-          <main className="container mx-auto px-4 py-8 max-w-7xl">
-            {children}
-          </main>
+          {children}
         </div>
       </body>
     </html>

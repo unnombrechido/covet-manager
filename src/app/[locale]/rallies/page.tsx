@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
+import { useTranslations, useLocale } from 'next-intl'
 
 interface Rally {
   id: number
@@ -20,9 +21,12 @@ interface House {
   covetName: string
 }
 
-const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
-
 export default function RalliesPage() {
+  const t = useTranslations('rallies')
+  const tc = useTranslations('common')
+  const tMonths = useTranslations('months')
+  const locale = useLocale()
+
   const [rallies, setRallies] = useState<Rally[]>([])
   const [houses, setHouses] = useState<House[]>([])
   const [loading, setLoading] = useState(true)
@@ -36,6 +40,11 @@ export default function RalliesPage() {
     houseId: ''
   })
 
+  const months = Array.from({ length: 12 }, (_, i) => ({
+    value: String(i + 1),
+    label: tMonths(String(i + 1) as '1'),
+  }))
+
   const fetchData = useCallback(async () => {
     try {
       const params = filterHouse ? `?houseId=${filterHouse}` : ''
@@ -46,7 +55,7 @@ export default function RalliesPage() {
       setRallies(await ralliesRes.json())
       setHouses(await housesRes.json())
     } catch {
-      setError('Failed to load data')
+      setError(t('loadError'))
     } finally {
       setLoading(false)
     }
@@ -65,14 +74,14 @@ export default function RalliesPage() {
       })
       if (!res.ok) {
         const d = await res.json()
-        setError(d.error || 'Failed to create rally')
+        setError(d.error || t('createError'))
         return
       }
       setFormData({ name: '', month: String(new Date().getMonth() + 1), year: String(new Date().getFullYear()), houseId: '' })
       setShowForm(false)
       fetchData()
     } catch {
-      setError('Failed to create rally')
+      setError(t('createError'))
     }
   }
 
@@ -86,19 +95,19 @@ export default function RalliesPage() {
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
-      <div className="text-gray-500 text-lg animate-pulse">Loading rallies...</div>
+      <div className="text-gray-500 text-lg animate-pulse">{tc('loading')}</div>
     </div>
   )
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">🏆 Rallies</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">🏆 {t('title')}</h1>
         <button
           onClick={() => setShowForm(!showForm)}
           className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
         >
-          {showForm ? 'Cancel' : '+ New Rally'}
+          {showForm ? tc('cancel') : `+ ${t('addRally')}`}
         </button>
       </div>
 
@@ -107,44 +116,44 @@ export default function RalliesPage() {
       )}
 
       <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow mb-6 border border-gray-200 dark:border-gray-700">
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Filter by House</label>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{tc('filter')} {tc('house')}</label>
         <select
           value={filterHouse}
           onChange={(e) => setFilterHouse(e.target.value)}
           className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
         >
-          <option value="">All Houses</option>
+          <option value="">{tc('house')} ({tc('filter')})</option>
           {houses.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
         </select>
       </div>
 
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow mb-6 border border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Create New Rally</h2>
+          <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">{t('createRally')}</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Rally Name</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('rallyName')}</label>
               <input
                 type="text"
                 required
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
-                placeholder="e.g., January Rally 2025"
+                placeholder={t('rallyNamePlaceholder')}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Month</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{tc('month')}</label>
               <select
                 value={formData.month}
                 onChange={(e) => setFormData({ ...formData, month: e.target.value })}
                 className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
               >
-                {MONTHS.map((m, i) => <option key={i+1} value={i+1}>{m}</option>)}
+                {months.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Year</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{tc('year')}</label>
               <input
                 type="number"
                 required
@@ -156,20 +165,20 @@ export default function RalliesPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">House</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{tc('house')}</label>
               <select
                 required
                 value={formData.houseId}
                 onChange={(e) => setFormData({ ...formData, houseId: e.target.value })}
                 className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
               >
-                <option value="">Select a house</option>
+                <option value="">{t('selectHouse')}</option>
                 {houses.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
               </select>
             </div>
           </div>
           <button type="submit" className="mt-4 bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
-            Create Rally
+            {t('createRally')}
           </button>
         </form>
       )}
@@ -177,13 +186,13 @@ export default function RalliesPage() {
       {sortedKeys.length === 0 ? (
         <div className="text-center py-16 text-gray-500">
           <div className="text-5xl mb-4">🏆</div>
-          <p className="text-lg">No rallies yet. Create your first rally!</p>
+          <p className="text-lg">{t('noRallies')}</p>
         </div>
       ) : (
         <div className="space-y-6">
           {sortedKeys.map(key => {
             const [year, month] = key.split('-')
-            const monthName = MONTHS[parseInt(month) - 1]
+            const monthName = tMonths(String(parseInt(month)) as '1')
             return (
               <div key={key}>
                 <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
@@ -194,7 +203,7 @@ export default function RalliesPage() {
                   {grouped[key].map(rally => (
                     <Link
                       key={rally.id}
-                      href={`/rallies/${rally.id}`}
+                      href={`/${locale}/rallies/${rally.id}`}
                       className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow border border-gray-200 dark:border-gray-700 hover:border-purple-400 hover:shadow-lg transition-all group"
                     >
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 mb-2">
@@ -204,7 +213,7 @@ export default function RalliesPage() {
                         🏠 {rally.house.name}
                       </p>
                       <p className="text-sm text-gray-500 dark:text-gray-400">
-                        📋 {rally._count.shows} shows
+                        📋 {rally._count.shows} {tc('shows')}
                       </p>
                     </Link>
                   ))}
