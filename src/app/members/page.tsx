@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 
 interface Member {
   id: number
@@ -46,7 +46,7 @@ export default function MembersPage() {
   })
   const [transferHouseId, setTransferHouseId] = useState('')
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const params = new URLSearchParams()
       if (filterHouse) params.set('houseId', filterHouse)
@@ -62,9 +62,9 @@ export default function MembersPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [filterHouse, filterActive])
 
-  useEffect(() => { fetchData() }, [filterHouse, filterActive])
+  useEffect(() => { fetchData() }, [fetchData])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 
@@ -37,7 +37,7 @@ export default function RallyDetailPage() {
   const [error, setError] = useState('')
   const [formData, setFormData] = useState({ name: '', code: '', showType: 'regular' })
 
-  const fetchRally = async () => {
+  const fetchRally = useCallback(async () => {
     try {
       const res = await fetch(`/api/rallies/${rallyId}`)
       if (!res.ok) throw new Error()
@@ -47,9 +47,9 @@ export default function RallyDetailPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [rallyId])
 
-  useEffect(() => { fetchRally() }, [rallyId])
+  useEffect(() => { fetchRally() }, [fetchRally])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

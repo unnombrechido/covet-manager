@@ -104,7 +104,7 @@ export default function MVPPage() {
             <input
               type="number"
               min="2020"
-              max="2030"
+              max={String(new Date().getFullYear() + 5)}
               value={filters.year}
               onChange={(e) => setFilters({ ...filters, year: e.target.value })}
               className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"

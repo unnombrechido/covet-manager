@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 
 interface Rally {
@@ -36,7 +36,7 @@ export default function RalliesPage() {
     houseId: ''
   })
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const params = filterHouse ? `?houseId=${filterHouse}` : ''
       const [ralliesRes, housesRes] = await Promise.all([
@@ -50,9 +50,9 @@ export default function RalliesPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [filterHouse])
 
-  useEffect(() => { fetchData() }, [filterHouse])
+  useEffect(() => { fetchData() }, [fetchData])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -149,7 +149,7 @@ export default function RalliesPage() {
                 type="number"
                 required
                 min="2020"
-                max="2030"
+                max={String(new Date().getFullYear() + 5)}
                 value={formData.year}
                 onChange={(e) => setFormData({ ...formData, year: e.target.value })}
                 className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
