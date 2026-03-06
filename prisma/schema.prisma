@@ -1,0 +1,66 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model House {
+  id          Int      @id @default(autoincrement())
+  name        String
+  covetName   String
+  ownerName   String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  members     Member[]
+  rallies     Rally[]
+}
+
+model Member {
+  id          Int      @id @default(autoincrement())
+  numericCode Int      @unique
+  covetName   String
+  ownerName   String
+  role        String   @default("member")
+  activeFrom  DateTime @default(now())
+  activeTo    DateTime?
+  houseId     Int
+  house       House    @relation(fields: [houseId], references: [id])
+  scores      Score[]
+}
+
+model Rally {
+  id        Int      @id @default(autoincrement())
+  name      String
+  month     Int
+  year      Int
+  houseId   Int
+  house     House    @relation(fields: [houseId], references: [id])
+  shows     Show[]
+  createdAt DateTime @default(now())
+}
+
+model Show {
+  id        Int     @id @default(autoincrement())
+  rallyId   Int
+  rally     Rally   @relation(fields: [rallyId], references: [id])
+  name      String
+  code      String
+  showType  String
+  scores    Score[]
+}
+
+model Score {
+  id          Int      @id @default(autoincrement())
+  showId      Int
+  show        Show     @relation(fields: [showId], references: [id])
+  memberId    Int
+  member      Member   @relation(fields: [memberId], references: [id])
+  score       Float    @default(0)
+  annotation  String?
+  createdAt   DateTime @default(now())
+
+  @@unique([showId, memberId])
+}
