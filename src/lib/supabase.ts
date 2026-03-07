@@ -6,10 +6,10 @@ export function getSupabaseClient(): SupabaseClient | null {
   if (client) return client
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY
+  const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY
 
-  if (!url || !anonKey) return null
+  if (!url || !publishableKey) return null
 
-  client = createClient(url, anonKey)
+  client = createClient(url, publishableKey)
   return client
 }

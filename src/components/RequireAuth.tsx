@@ -67,7 +67,7 @@ export default function RequireAuth({ locale, children }: RequireAuthProps) {
   if (!clientReady) {
     return (
       <div className="max-w-lg mx-auto mt-24 p-6 rounded-xl border border-red-300 bg-red-50 text-red-800">
-        Supabase is not configured. Set `NEXT_PUBLIC_SUPABASE_URL` and either `NEXT_PUBLIC_SUPABASE_ANON_KEY` or `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY`.
+        Supabase is not configured. Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY`.
       </div>
     )
   }

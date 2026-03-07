@@ -6,9 +6,13 @@ export async function getAuthenticatedUserId(request: NextRequest): Promise<stri
   if (!authHeader?.startsWith('Bearer ')) return null
 
   const accessToken = authHeader.slice('Bearer '.length)
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY
+  if (!url || !publishableKey) return null
+
   const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    url,
+    publishableKey
   )
 
   const { data, error } = await supabase.auth.getUser(accessToken)
