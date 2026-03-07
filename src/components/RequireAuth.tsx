@@ -57,9 +57,15 @@ export default function RequireAuth({ children }: RequireAuthProps) {
     setLoginError('')
     setAuthMessage('')
 
+    const emailRedirectTo = `${window.location.origin}${window.location.pathname}`
+
     const result = authMode === 'signin'
       ? await supabase.auth.signInWithPassword({ email, password })
-      : await supabase.auth.signUp({ email, password })
+      : await supabase.auth.signUp({
+        email,
+        password,
+        options: { emailRedirectTo }
+      })
 
     if (result.error) {
       setLoginError(result.error.message)
