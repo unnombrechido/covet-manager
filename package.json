@@ -10,11 +10,14 @@
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
+    "@supabase/supabase-js": "^2.98.0",
+    "@tanstack/react-query": "^5.90.21",
     "next": "14.2.35",
     "next-intl": "^4.8.3",
     "prisma": "^5.22.0",
     "react": "^18",
-    "react-dom": "^18"
+    "react-dom": "^18",
+    "zustand": "^5.0.11"
   },
   "prisma": {
     "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"

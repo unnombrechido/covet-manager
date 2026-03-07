@@ -3,64 +3,93 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-model House {
+model Brands {
   id          Int      @id @default(autoincrement())
   name        String
-  covetName   String
-  ownerName   String
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  members     Member[]
-  rallies     Rally[]
+  description String?
+  created_at  DateTime @default(now())
+
+  houses Houses[]
 }
 
-model Member {
+model Houses {
   id          Int      @id @default(autoincrement())
-  numericCode Int      @unique
-  covetName   String
-  ownerName   String
-  role        String   @default("member")
-  activeFrom  DateTime @default(now())
-  activeTo    DateTime?
-  houseId     Int
-  house       House    @relation(fields: [houseId], references: [id])
-  scores      Score[]
+  brand_id    Int
+  name        String
+  description String?
+  created_at  DateTime @default(now())
+
+  brand       Brands         @relation(fields: [brand_id], references: [id])
+  members     Members[]
+  directivos  Directivos[]
 }
 
-model Rally {
-  id        Int      @id @default(autoincrement())
-  name      String
-  month     Int
-  year      Int
-  houseId   Int
-  house     House    @relation(fields: [houseId], references: [id])
-  shows     Show[]
-  createdAt DateTime @default(now())
+model Members {
+  id            Int      @id @default(autoincrement())
+  house_id      Int
+  cuenta        String
+  nombre        String
+  activo        Boolean  @default(true)
+  fecha_ingreso DateTime
+  fecha_salida  DateTime?
+  created_at    DateTime @default(now())
+
+  house         Houses         @relation(fields: [house_id], references: [id])
+  directivos    Directivos[]
+  participations Participations[]
 }
 
-model Show {
-  id        Int     @id @default(autoincrement())
-  rallyId   Int
-  rally     Rally   @relation(fields: [rallyId], references: [id])
-  name      String
-  code      String
-  showType  String
-  scores    Score[]
+model Directivos {
+  id         Int      @id @default(autoincrement())
+  house_id   Int
+  member_id  Int
+  role       String
+  start_date DateTime @default(now())
+  end_date   DateTime?
+
+  house      Houses   @relation(fields: [house_id], references: [id])
+  member     Members  @relation(fields: [member_id], references: [id])
 }
 
-model Score {
-  id          Int      @id @default(autoincrement())
-  showId      Int
-  show        Show     @relation(fields: [showId], references: [id])
-  memberId    Int
-  member      Member   @relation(fields: [memberId], references: [id])
-  score       Float    @default(0)
-  annotation  String?
-  createdAt   DateTime @default(now())
+model Rallies {
+  id            Int      @id @default(autoincrement())
+  brand_id      Int?
+  month         String
+  rally_number  Int
+  start_day     Int
+  end_day       Int
+  slot_ini      String?
+  slot_fin      String?
+  created_at    DateTime @default(now())
 
-  @@unique([showId, memberId])
+  brand         Brands?  @relation(fields: [brand_id], references: [id])
+  shows         Shows[]
+}
+
+model Shows {
+  id            Int      @id @default(autoincrement())
+  rally_id      Int
+  show_number   Int
+  name          String
+  details       String?
+
+  rally         Rallies        @relation(fields: [rally_id], references: [id])
+  participations Participations[]
+}
+
+model Participations {
+  id         Int      @id @default(autoincrement())
+  member_id  Int
+  show_id    Int
+  status     String   @default("Participated")
+  points     Int      @default(0)
+  notes      String?
+  updated_at DateTime @default(now())
+
+  member     Members  @relation(fields: [member_id], references: [id])
+  show       Shows    @relation(fields: [show_id], references: [id])
 }
