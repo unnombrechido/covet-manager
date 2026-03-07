@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getAuthenticatedUserId } from '@/lib/auth'
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
 function monthNumberToName(month: number) {
@@ -8,6 +9,11 @@ function monthNumberToName(month: number) {
 
 export async function GET(request: NextRequest) {
   try {
+    const userId = await getAuthenticatedUserId(request)
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const { searchParams } = new URL(request.url)
     const houseId = searchParams.get('house_id')
     const month = searchParams.get('month')

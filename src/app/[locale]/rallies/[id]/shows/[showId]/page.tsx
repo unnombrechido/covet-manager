@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { useTranslations, useLocale } from 'next-intl'
+import { authFetch } from '@/lib/auth-fetch'
 
 interface Member {
   id: number
@@ -53,14 +54,14 @@ export default function ShowScorePage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const rally_res = await fetch(`/api/rallies/${rally_id}`)
+      const rally_res = await authFetch(`/api/rallies/${rally_id}`)
       const rally_data = await rally_res.json()
       const current_show = rally_data.shows.find((show: Show) => show.id === parseInt(show_id))
       setShow(current_show)
 
       const [members_res, scores_res] = await Promise.all([
-        fetch(`/api/members?house_id=${rally_data.house.id}&active_only=true`),
-        fetch(`/api/shows/${show_id}/scores`)
+        authFetch(`/api/members?house_id=${rally_data.house.id}&active_only=true`),
+        authFetch(`/api/shows/${show_id}/scores`)
       ])
       const members_data: Member[] = await members_res.json()
       const scores_data: Score[] = await scores_res.json()
@@ -90,7 +91,7 @@ export default function ShowScorePage() {
     setSaving(member_id)
     try {
       const score_data = scores[member_id]
-      await fetch(`/api/shows/${show_id}/scores`, {
+      await authFetch(`/api/shows/${show_id}/scores`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

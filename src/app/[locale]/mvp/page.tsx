@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
+import { authFetch } from '@/lib/auth-fetch'
 
 interface House {
   id: number
@@ -44,7 +45,7 @@ export default function MVPPage() {
   }))
 
   useEffect(() => {
-    fetch('/api/houses').then(r => r.json()).then(setHouses).catch(() => setError(t('loadError')))
+    authFetch('/api/houses').then(r => r.json()).then(setHouses).catch(() => setError(t('loadError')))
   }, [])
 
   const fetchMVP = async () => {
@@ -64,7 +65,7 @@ export default function MVPPage() {
         year: filters.year,
         ...(excludeRoles.length > 0 ? { excludeRoles: excludeRoles.join(',') } : {})
       })
-      const res = await fetch(`/api/mvp?${params}`)
+      const res = await authFetch(`/api/mvp?${params}`)
       setRankings(await res.json())
     } catch {
       setError(t('fetchError'))

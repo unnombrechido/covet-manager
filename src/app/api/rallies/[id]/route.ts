@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getAuthenticatedUserId } from '@/lib/auth'
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
 export const dynamic = 'force-dynamic'
@@ -11,6 +12,11 @@ function monthNameToNumber(month: string) {
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
+    const userId = await getAuthenticatedUserId(request)
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const id = parseInt(params.id)
     if (Number.isNaN(id)) {
       return NextResponse.json({ error: 'Invalid rally id' }, { status: 400 })

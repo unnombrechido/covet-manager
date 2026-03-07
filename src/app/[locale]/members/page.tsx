@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
 import { getSupabaseClient } from '@/lib/supabase'
+import { authFetch } from '@/lib/auth-fetch'
 
 interface Member {
   id: number
@@ -56,8 +57,8 @@ export default function MembersPage() {
       if (filter_house) params.set('house_id', filter_house)
       if (filter_active) params.set('active_only', 'true')
       const [membersRes, housesRes] = await Promise.all([
-        fetch(`/api/members?${params}`),
-        fetch('/api/houses')
+        authFetch(`/api/members?${params}`),
+        authFetch('/api/houses')
       ])
       setMembers(await membersRes.json())
       setHouses(await housesRes.json())
@@ -92,25 +93,9 @@ export default function MembersPage() {
     e.preventDefault()
     set_error('')
     try {
-      const supabase = getSupabaseClient()
-      if (!supabase) {
-        set_error('Supabase client is not configured')
-        return
-      }
-
-      const { data: sessionData } = await supabase.auth.getSession()
-      const accessToken = sessionData.session?.access_token
-      if (!accessToken) {
-        set_error('You must be authenticated to create a member')
-        return
-      }
-
-      const res = await fetch('/api/members', {
+      const res = await authFetch('/api/members', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form_data)
       })
       if (!res.ok) {
@@ -126,28 +111,12 @@ export default function MembersPage() {
     }
   }
 
-  const withAuthHeaders = async () => {
-    const supabase = getSupabaseClient()
-    if (!supabase) {
-      return {
-        'Content-Type': 'application/json'
-      }
-    }
-
-    const { data: sessionData } = await supabase.auth.getSession()
-    const accessToken = sessionData.session?.access_token
-    return {
-      'Content-Type': 'application/json',
-      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {})
-    }
-  }
-
   const deactivateMember = async (id: number) => {
     if (!confirm(t('removeConfirm'))) return
     try {
-      await fetch(`/api/members/${id}`, {
+      await authFetch(`/api/members/${id}`, {
         method: 'PUT',
-        headers: await withAuthHeaders(),
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fecha_salida: new Date().toISOString() })
       })
       fetchData()
@@ -159,25 +128,9 @@ export default function MembersPage() {
   const linkMemberToCurrentUser = async (id: number) => {
     set_error('')
     try {
-      const supabase = getSupabaseClient()
-      if (!supabase) {
-        set_error('Supabase client is not configured')
-        return
-      }
-
-      const { data: sessionData } = await supabase.auth.getSession()
-      const accessToken = sessionData.session?.access_token
-      if (!accessToken) {
-        set_error('You must be authenticated to link a member')
-        return
-      }
-
-      const res = await fetch(`/api/members/${id}`, {
+      const res = await authFetch(`/api/members/${id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ linkCurrentUser: true })
       })
 
@@ -196,9 +149,9 @@ export default function MembersPage() {
   const transferMember = async (id: number) => {
     if (!transfer_house_id) return
     try {
-      await fetch(`/api/members/${id}`, {
+      await authFetch(`/api/members/${id}`, {
         method: 'PUT',
-        headers: await withAuthHeaders(),
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ house_id: parseInt(transfer_house_id) })
       })
       set_show_transfer(null)

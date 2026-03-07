@@ -87,6 +87,11 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
+    const userId = await getAuthenticatedUserId(request)
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const id = parseInt(params.id)
     if (Number.isNaN(id)) {
       return NextResponse.json({ error: 'Invalid member id' }, { status: 400 })

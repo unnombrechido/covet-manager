@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useTranslations, useLocale } from 'next-intl'
+import { authFetch } from '@/lib/auth-fetch'
 
 interface Rally {
   id: number
@@ -48,8 +49,8 @@ export default function RalliesPage() {
     try {
       const params = filterHouse ? `?house_id=${filterHouse}` : ''
       const [ralliesRes, housesRes] = await Promise.all([
-        fetch(`/api/rallies${params}`),
-        fetch('/api/houses')
+        authFetch(`/api/rallies${params}`),
+        authFetch('/api/houses')
       ])
       setRallies(await ralliesRes.json())
       setHouses(await housesRes.json())
@@ -66,7 +67,7 @@ export default function RalliesPage() {
     e.preventDefault()
     setError('')
     try {
-      const res = await fetch('/api/rallies', {
+      const res = await authFetch('/api/rallies', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)

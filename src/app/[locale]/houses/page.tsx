@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
+import { authFetch } from '@/lib/auth-fetch'
 
 interface House {
   id: number
@@ -24,7 +25,7 @@ export default function HousesPage() {
 
   const fetchHouses = async () => {
     try {
-      const res = await fetch('/api/houses')
+      const res = await authFetch('/api/houses')
       const data = await res.json()
       setHouses(data)
     } catch {
@@ -40,7 +41,7 @@ export default function HousesPage() {
     e.preventDefault()
     setError('')
     try {
-      const res = await fetch('/api/houses', {
+      const res = await authFetch('/api/houses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)

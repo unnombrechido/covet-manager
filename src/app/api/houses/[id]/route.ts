@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getAuthenticatedUserId } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -10,6 +11,11 @@ function getMemberRole(directivos: Array<{ role: string; end_date: Date | null }
 
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   try {
+    const userId = await getAuthenticatedUserId(request)
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const id = parseInt(params.id)
     if (Number.isNaN(id)) {
       return NextResponse.json({ error: 'Invalid house id' }, { status: 400 })
@@ -38,6 +44,11 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
+    const userId = await getAuthenticatedUserId(request)
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const id = parseInt(params.id)
     if (Number.isNaN(id)) {
       return NextResponse.json({ error: 'Invalid house id' }, { status: 400 })

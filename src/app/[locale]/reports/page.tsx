@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
+import { authFetch } from '@/lib/auth-fetch'
 
 interface House {
   id: number
@@ -46,7 +47,7 @@ export default function ReportsPage() {
   }))
 
   useEffect(() => {
-    fetch('/api/houses').then(r => r.json()).then(setHouses).catch(() => setError(t('loadError')))
+    authFetch('/api/houses').then(r => r.json()).then(setHouses).catch(() => setError(t('loadError')))
   }, [])
 
   const generateReport = async () => {
@@ -58,7 +59,7 @@ export default function ReportsPage() {
     setLoading(true)
     try {
       const params = new URLSearchParams(filters)
-      const res = await fetch(`/api/reports?${params}`)
+      const res = await authFetch(`/api/reports?${params}`)
       setReport(await res.json())
     } catch {
       setError(t('fetchError'))

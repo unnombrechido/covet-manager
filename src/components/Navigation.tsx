@@ -1,9 +1,11 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useTranslations, useLocale } from 'next-intl'
 import { routing } from '@/i18n/routing'
+import { getSupabaseClient } from '@/lib/supabase'
 
 const LOCALE_LABELS: Record<string, string> = {
   en: '🇺🇸 EN',
@@ -16,6 +18,8 @@ export default function Navigation() {
   const locale = useLocale()
   const pathname = usePathname()
   const router = useRouter()
+  const [userId, setUserId] = useState<string | null>(null)
+  const [menuOpen, setMenuOpen] = useState(false)
 
   const navLinks = [
     { href: `/${locale}`, label: t('home'), exact: true },
@@ -31,6 +35,49 @@ export default function Navigation() {
     const segments = pathname.split('/')
     segments[1] = newLocale
     router.push(segments.join('/') || `/${newLocale}`)
+  }
+
+  useEffect(() => {
+    const supabase = getSupabaseClient()
+    if (!supabase) return
+
+    supabase.auth.getSession().then(({ data }) => {
+      setUserId(data.session?.user.id ?? null)
+    })
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUserId(session?.user.id ?? null)
+    })
+
+    return () => {
+      authListener.subscription.unsubscribe()
+    }
+  }, [])
+
+  const signInWithFacebook = async () => {
+    const supabase = getSupabaseClient()
+    if (!supabase) return
+
+    await supabase.auth.signInWithOAuth({
+      provider: 'facebook',
+      options: {
+        redirectTo: `${window.location.origin}/${locale}`,
+      },
+    })
+  }
+
+  const signOut = async () => {
+    const supabase = getSupabaseClient()
+    if (!supabase) return
+
+    await supabase.auth.signOut()
+    setMenuOpen(false)
+    router.push(`/${locale}`)
+  }
+
+  const copyUserId = async () => {
+    if (!userId) return
+    await navigator.clipboard.writeText(userId)
   }
 
   return (
@@ -75,6 +122,51 @@ export default function Navigation() {
                   {LOCALE_LABELS[loc]}
                 </button>
               ))}
+            </div>
+
+            <div className="relative ml-2 border-l border-purple-500 pl-3">
+              {userId ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setMenuOpen((prev) => !prev)}
+                    className="w-9 h-9 rounded-full bg-purple-900 hover:bg-purple-800 text-white font-semibold"
+                    title="Account"
+                  >
+                    U
+                  </button>
+                  {menuOpen && (
+                    <div className="absolute right-0 mt-2 w-72 bg-white text-gray-900 rounded-lg shadow-xl border border-gray-200 p-3 z-30">
+                      <p className="text-xs font-semibold text-gray-500 mb-1">Auth UUID</p>
+                      <p className="text-xs break-all bg-gray-50 border border-gray-200 rounded p-2">{userId}</p>
+                      <div className="mt-3 flex gap-2">
+                        <button
+                          type="button"
+                          onClick={copyUserId}
+                          className="flex-1 text-sm px-3 py-1.5 rounded bg-gray-100 hover:bg-gray-200"
+                        >
+                          Copy UUID
+                        </button>
+                        <button
+                          type="button"
+                          onClick={signOut}
+                          className="flex-1 text-sm px-3 py-1.5 rounded bg-red-600 text-white hover:bg-red-700"
+                        >
+                          Logout
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={signInWithFacebook}
+                  className="px-3 py-1.5 rounded text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  Login
+                </button>
+              )}
             </div>
           </div>
         </div>

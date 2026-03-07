@@ -10,6 +10,11 @@ function getMemberRole(directivos: Array<{ role: string; end_date: Date | null }
 
 export async function GET(request: NextRequest) {
   try {
+    const userId = await getAuthenticatedUserId(request)
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const { searchParams } = new URL(request.url)
     const houseId = searchParams.get('house_id')
     const activeOnly = searchParams.get('active_only') === 'true'

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { useTranslations, useLocale } from 'next-intl'
+import { authFetch } from '@/lib/auth-fetch'
 
 interface Show {
   id: number
@@ -41,7 +42,7 @@ export default function RallyDetailPage() {
 
   const fetchRally = useCallback(async () => {
     try {
-      const res = await fetch(`/api/rallies/${rally_id}`)
+      const res = await authFetch(`/api/rallies/${rally_id}`)
       if (!res.ok) throw new Error()
       setRally(await res.json())
     } catch {
@@ -57,7 +58,7 @@ export default function RallyDetailPage() {
     e.preventDefault()
     setError('')
     try {
-      const res = await fetch(`/api/rallies/${rally_id}/shows`, {
+      const res = await authFetch(`/api/rallies/${rally_id}/shows`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
