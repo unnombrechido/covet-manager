@@ -12,6 +12,7 @@ export default function RequireAuth({ locale, children }: RequireAuthProps) {
   const [loading, setLoading] = useState(true)
   const [userId, setUserId] = useState<string | null>(null)
   const [clientReady, setClientReady] = useState(true)
+  const [loginError, setLoginError] = useState('')
 
   useEffect(() => {
     const supabase = getSupabaseClient()
@@ -38,14 +39,21 @@ export default function RequireAuth({ locale, children }: RequireAuthProps) {
 
   const signInWithFacebook = async () => {
     const supabase = getSupabaseClient()
-    if (!supabase) return
+    if (!supabase) {
+      setLoginError('Supabase client is not configured.')
+      return
+    }
 
-    await supabase.auth.signInWithOAuth({
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: 'facebook',
       options: {
         redirectTo: `${window.location.origin}/${locale}`
       }
     })
+
+    if (error) {
+      setLoginError(error.message)
+    }
   }
 
   if (loading) {
@@ -59,7 +67,7 @@ export default function RequireAuth({ locale, children }: RequireAuthProps) {
   if (!clientReady) {
     return (
       <div className="max-w-lg mx-auto mt-24 p-6 rounded-xl border border-red-300 bg-red-50 text-red-800">
-        Supabase is not configured. Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+        Supabase is not configured. Set `NEXT_PUBLIC_SUPABASE_URL` and either `NEXT_PUBLIC_SUPABASE_ANON_KEY` or `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY`.
       </div>
     )
   }
@@ -71,6 +79,11 @@ export default function RequireAuth({ locale, children }: RequireAuthProps) {
           <div className="text-4xl mb-3">LOCK</div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Login Required</h1>
           <p className="text-gray-600 mb-6">Please sign in with Facebook to access Covet Manager.</p>
+          {loginError && (
+            <div className="mb-4 text-left text-sm text-red-700 bg-red-50 border border-red-200 rounded p-3">
+              {loginError}
+            </div>
+          )}
           <button
             type="button"
             onClick={signInWithFacebook}

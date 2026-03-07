@@ -20,6 +20,7 @@ export default function Navigation() {
   const router = useRouter()
   const [userId, setUserId] = useState<string | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [loginError, setLoginError] = useState('')
 
   const navLinks = [
     { href: `/${locale}`, label: t('home'), exact: true },
@@ -56,14 +57,23 @@ export default function Navigation() {
 
   const signInWithFacebook = async () => {
     const supabase = getSupabaseClient()
-    if (!supabase) return
+    if (!supabase) {
+      setLoginError('Supabase client is not configured.')
+      return
+    }
 
-    await supabase.auth.signInWithOAuth({
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: 'facebook',
       options: {
         redirectTo: `${window.location.origin}/${locale}`,
       },
     })
+
+    if (error) {
+      setLoginError(error.message)
+    } else {
+      setLoginError('')
+    }
   }
 
   const signOut = async () => {
@@ -170,6 +180,11 @@ export default function Navigation() {
             </div>
           </div>
         </div>
+        {loginError && (
+          <div className="pb-3 text-sm text-red-100">
+            Login error: {loginError}
+          </div>
+        )}
       </div>
     </nav>
   )
