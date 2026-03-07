@@ -3,15 +3,29 @@ import { prisma } from '@/lib/prisma'
 
 export async function GET() {
   try {
-    const houses = await prisma.house.findMany({
+    const houses = await prisma.houses.findMany({
       include: {
         _count: {
-          select: { members: true, rallies: true }
+          select: { members: true }
         }
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { created_at: 'desc' }
     })
-    return NextResponse.json(houses)
+
+    const rallyCounts = await Promise.all(
+      houses.map((house) =>
+        house.brand_id
+          ? prisma.rallies.count({ where: { brand_id: house.brand_id } })
+          : Promise.resolve(0)
+      )
+    )
+
+    return NextResponse.json(
+      houses.map((house, index) => ({
+        ...house,
+        rallies_count: rallyCounts[index]
+      }))
+    )
   } catch {
     return NextResponse.json({ error: 'Failed to fetch houses' }, { status: 500 })
   }
@@ -20,14 +34,25 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { name, covetName, ownerName } = body
-    if (!name || !covetName || !ownerName) {
+    const { name, description } = body
+    if (!name) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
-    const house = await prisma.house.create({
-      data: { name, covetName, ownerName }
+
+    const brand = await prisma.brands.create({
+      data: { name: `${name} Brand` }
     })
-    return NextResponse.json(house, { status: 201 })
+
+    const house = await prisma.houses.create({
+      data: {
+        name,
+        brand_id: brand.id,
+        description: description || null
+      },
+      include: { _count: { select: { members: true } } }
+    })
+
+    return NextResponse.json({ ...house, rallies_count: 0 }, { status: 201 })
   } catch {
     return NextResponse.json({ error: 'Failed to create house' }, { status: 500 })
   }

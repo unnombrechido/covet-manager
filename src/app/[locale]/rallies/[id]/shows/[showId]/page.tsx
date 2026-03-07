@@ -7,15 +7,14 @@ import { useTranslations, useLocale } from 'next-intl'
 
 interface Member {
   id: number
-  numericCode: number
-  covetName: string
-  ownerName: string
+  cuenta: string
+  nombre: string
   role: string
 }
 
 interface Score {
   id: number
-  memberId: number
+  member_id: number
   score: number
   annotation: string | null
   member: Member
@@ -24,19 +23,18 @@ interface Score {
 interface Show {
   id: number
   name: string
-  code: string
-  showType: string
-  rallyId: number
+  details: string | null
+  show_number: number
+  rally_id: number
 }
 
 export default function ShowScorePage() {
   const t = useTranslations('scores')
   const tc = useTranslations('common')
-  const tTypes = useTranslations('showTypes')
   const locale = useLocale()
   const params = useParams()
-  const rallyId = params.id as string
-  const showId = params.showId as string
+  const rally_id = params.id as string
+  const show_id = params.showId as string
 
   const [show, setShow] = useState<Show | null>(null)
   const [members, setMembers] = useState<Member[]>([])
@@ -55,50 +53,50 @@ export default function ShowScorePage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const rallyRes = await fetch(`/api/rallies/${rallyId}`)
-      const rallyData = await rallyRes.json()
-      const currentShow = rallyData.shows.find((s: Show) => s.id === parseInt(showId))
-      setShow(currentShow)
+      const rally_res = await fetch(`/api/rallies/${rally_id}`)
+      const rally_data = await rally_res.json()
+      const current_show = rally_data.shows.find((show: Show) => show.id === parseInt(show_id))
+      setShow(current_show)
 
-      const [membersRes, scoresRes] = await Promise.all([
-        fetch(`/api/members?houseId=${rallyData.house.id}&activeOnly=true`),
-        fetch(`/api/shows/${showId}/scores`)
+      const [members_res, scores_res] = await Promise.all([
+        fetch(`/api/members?house_id=${rally_data.house.id}&active_only=true`),
+        fetch(`/api/shows/${show_id}/scores`)
       ])
-      const membersData: Member[] = await membersRes.json()
-      const scoresData: Score[] = await scoresRes.json()
+      const members_data: Member[] = await members_res.json()
+      const scores_data: Score[] = await scores_res.json()
 
-      setMembers(membersData)
-      setSavedScores(scoresData)
+      setMembers(members_data)
+      setSavedScores(scores_data)
 
-      const scoreMap: Record<number, { score: string; annotation: string }> = {}
-      membersData.forEach(m => {
-        const existingScore = scoresData.find(s => s.memberId === m.id)
-        scoreMap[m.id] = {
-          score: existingScore ? String(existingScore.score) : '',
-          annotation: existingScore?.annotation || ''
+      const score_map: Record<number, { score: string; annotation: string }> = {}
+      members_data.forEach((member) => {
+        const existing_score = scores_data.find((score) => score.member_id === member.id)
+        score_map[member.id] = {
+          score: existing_score ? String(existing_score.score) : '',
+          annotation: existing_score?.annotation || ''
         }
       })
-      setScores(scoreMap)
+      setScores(score_map)
     } catch {
       setError(t('loadError'))
     } finally {
       setLoading(false)
     }
-  }, [rallyId, showId])
+  }, [rally_id, show_id])
 
   useEffect(() => { fetchData() }, [fetchData])
 
-  const saveScore = async (memberId: number) => {
-    setSaving(memberId)
+  const saveScore = async (member_id: number) => {
+    setSaving(member_id)
     try {
-      const scoreData = scores[memberId]
-      await fetch(`/api/shows/${showId}/scores`, {
+      const score_data = scores[member_id]
+      await fetch(`/api/shows/${show_id}/scores`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          memberId,
-          score: parseFloat(scoreData.score) || 0,
-          annotation: scoreData.annotation || null
+          member_id,
+          score: parseFloat(score_data.score) || 0,
+          annotation: score_data.annotation || null
         })
       })
       await fetchData()
@@ -109,10 +107,10 @@ export default function ShowScorePage() {
     }
   }
 
-  const handleScoreChange = (memberId: number, field: 'score' | 'annotation', value: string) => {
-    setScores(prev => ({
+  const handleScoreChange = (member_id: number, field: 'score' | 'annotation', value: string) => {
+    setScores((prev) => ({
       ...prev,
-      [memberId]: { ...prev[memberId], [field]: value }
+      [member_id]: { ...prev[member_id], [field]: value }
     }))
   }
 
@@ -132,8 +130,8 @@ export default function ShowScorePage() {
           {t('breadcrumbRallies')}
         </Link>
         <span>›</span>
-        <Link href={`/${locale}/rallies/${rallyId}`} className="text-purple-600 hover:text-purple-800 dark:text-purple-400">
-          Rally #{rallyId}
+        <Link href={`/${locale}/rallies/${rally_id}`} className="text-purple-600 hover:text-purple-800 dark:text-purple-400">
+          Rally #{rally_id}
         </Link>
         <span>›</span>
         <span>{t('breadcrumbScoreEntry')}</span>
@@ -144,7 +142,7 @@ export default function ShowScorePage() {
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{show.name}</h1>
             <p className="text-gray-500 dark:text-gray-400">
-              {t('code')}: {show.code} · {t('type')}: {tTypes(show.showType as 'regular')}
+              #{show.show_number}{show.details ? ` · ${show.details}` : ''}
             </p>
           </div>
         </div>
@@ -179,14 +177,14 @@ export default function ShowScorePage() {
             {members.map(member => {
               const memberScore = scores[member.id] || { score: '', annotation: '' }
               const isSaving = saving === member.id
-              const savedScore = savedScores.find(s => s.memberId === member.id)
+              const savedScore = savedScores.find((score) => score.member_id === member.id)
               return (
                 <tr key={member.id} className={`hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${
                   savedScore?.annotation === 'temporarily banned' ? 'bg-red-50 dark:bg-red-900/10' : ''
                 }`}>
                   <td className="px-4 py-3">
-                    <div className="text-sm font-medium text-gray-900 dark:text-white">{member.covetName}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">#{member.numericCode} · {member.role}</div>
+                    <div className="text-sm font-medium text-gray-900 dark:text-white">{member.cuenta}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">#{member.id} · {member.role}</div>
                   </td>
                   <td className="px-4 py-3">
                     <input

@@ -6,11 +6,10 @@ import { useTranslations } from 'next-intl'
 interface House {
   id: number
   name: string
-  covetName: string
-  ownerName: string
-  isActive: boolean
-  createdAt: string
-  _count?: { members: number; rallies: number }
+  description: string | null
+  created_at: string | null
+  _count?: { members: number }
+  rallies_count?: number
 }
 
 export default function HousesPage() {
@@ -21,7 +20,7 @@ export default function HousesPage() {
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [error, setError] = useState('')
-  const [formData, setFormData] = useState({ name: '', covetName: '', ownerName: '' })
+  const [formData, setFormData] = useState({ name: '', description: '' })
 
   const fetchHouses = async () => {
     try {
@@ -51,24 +50,11 @@ export default function HousesPage() {
         setError(d.error || t('createError'))
         return
       }
-      setFormData({ name: '', covetName: '', ownerName: '' })
+      setFormData({ name: '', description: '' })
       setShowForm(false)
       fetchHouses()
     } catch {
       setError(t('createError'))
-    }
-  }
-
-  const toggleActive = async (house: House) => {
-    try {
-      await fetch(`/api/houses/${house.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isActive: !house.isActive })
-      })
-      fetchHouses()
-    } catch {
-      setError(t('updateError'))
     }
   }
 
@@ -99,7 +85,7 @@ export default function HousesPage() {
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow mb-6 border border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">{t('addNewHouse')}</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('houseName')}</label>
               <input
@@ -112,25 +98,13 @@ export default function HousesPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('covetName')}</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
               <input
                 type="text"
-                required
-                value={formData.covetName}
-                onChange={(e) => setFormData({ ...formData, covetName: e.target.value })}
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
-                placeholder={t('covetNamePlaceholder')}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('ownerName')}</label>
-              <input
-                type="text"
-                required
-                value={formData.ownerName}
-                onChange={(e) => setFormData({ ...formData, ownerName: e.target.value })}
-                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
-                placeholder={t('ownerNamePlaceholder')}
+                placeholder="Optional"
               />
             </div>
           </div>
@@ -152,31 +126,15 @@ export default function HousesPage() {
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{house.name}</h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">@{house.covetName}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">{house.description || '-'}</p>
                 </div>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${house.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                  {house.isActive ? tc('active') : tc('inactive')}
-                </span>
               </div>
-              <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
-                <span className="font-medium">{t('ownerName')}:</span> {house.ownerName}
-              </p>
               {house._count && (
                 <div className="flex gap-4 text-sm text-gray-500 dark:text-gray-400 mb-4">
                   <span>👥 {house._count.members} {tc('members')}</span>
-                  <span>🏆 {house._count.rallies} {tc('rallies')}</span>
+                  <span>🏆 {house.rallies_count ?? 0} {tc('rallies')}</span>
                 </div>
               )}
-              <button
-                onClick={() => toggleActive(house)}
-                className={`w-full py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
-                  house.isActive
-                    ? 'bg-red-100 hover:bg-red-200 text-red-700 dark:bg-red-900/30 dark:hover:bg-red-900/50 dark:text-red-400'
-                    : 'bg-green-100 hover:bg-green-200 text-green-700 dark:bg-green-900/30 dark:hover:bg-green-900/50 dark:text-green-400'
-                }`}
-              >
-                {house.isActive ? tc('deactivate') : tc('activate')}
-              </button>
             </div>
           ))}
         </div>

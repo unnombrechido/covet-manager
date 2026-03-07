@@ -8,10 +8,10 @@ import { useTranslations, useLocale } from 'next-intl'
 interface Show {
   id: number
   name: string
-  code: string
-  showType: string
-  rallyId: number
-  scores: { score: number; member: { covetName: string } }[]
+  details: string | null
+  show_number: number
+  rally_id: number
+  scores: { score: number; member: { cuenta: string } }[]
   _count: { scores: number }
 }
 
@@ -28,23 +28,20 @@ export default function RallyDetailPage() {
   const t = useTranslations('rallies')
   const tc = useTranslations('common')
   const tMonths = useTranslations('months')
-  const tTypes = useTranslations('showTypes')
   const locale = useLocale()
   const params = useParams()
-  const rallyId = params.id as string
+  const rally_id = params.id as string
 
   const [rally, setRally] = useState<Rally | null>(null)
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [search, setSearch] = useState('')
   const [error, setError] = useState('')
-  const [formData, setFormData] = useState({ name: '', code: '', showType: 'regular' })
-
-  const showTypes = ['regular', 'special', 'mega', 'epic', 'legendary'] as const
+  const [formData, setFormData] = useState({ name: '', details: '' })
 
   const fetchRally = useCallback(async () => {
     try {
-      const res = await fetch(`/api/rallies/${rallyId}`)
+      const res = await fetch(`/api/rallies/${rally_id}`)
       if (!res.ok) throw new Error()
       setRally(await res.json())
     } catch {
@@ -52,7 +49,7 @@ export default function RallyDetailPage() {
     } finally {
       setLoading(false)
     }
-  }, [rallyId])
+  }, [rally_id])
 
   useEffect(() => { fetchRally() }, [fetchRally])
 
@@ -60,7 +57,7 @@ export default function RallyDetailPage() {
     e.preventDefault()
     setError('')
     try {
-      const res = await fetch(`/api/rallies/${rallyId}/shows`, {
+      const res = await fetch(`/api/rallies/${rally_id}/shows`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
@@ -70,7 +67,7 @@ export default function RallyDetailPage() {
         setError(d.error || t('addShowError'))
         return
       }
-      setFormData({ name: '', code: '', showType: 'regular' })
+      setFormData({ name: '', details: '' })
       setShowForm(false)
       fetchRally()
     } catch {
@@ -93,9 +90,9 @@ export default function RallyDetailPage() {
     </div>
   )
 
-  const filteredShows = rally.shows.filter(s =>
-    s.name.toLowerCase().includes(search.toLowerCase()) ||
-    s.code.toLowerCase().includes(search.toLowerCase())
+  const filteredShows = rally.shows.filter((show) =>
+    show.name.toLowerCase().includes(search.toLowerCase()) ||
+    (show.details ?? '').toLowerCase().includes(search.toLowerCase())
   )
 
   const totalScore = rally.shows.reduce((sum, show) =>
@@ -145,7 +142,7 @@ export default function RallyDetailPage() {
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow mb-6 border border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">{t('addShowTitle')}</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('showName')}</label>
               <input
@@ -158,25 +155,14 @@ export default function RallyDetailPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('showCode')}</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Details</label>
               <input
                 type="text"
-                required
-                value={formData.code}
-                onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                value={formData.details}
+                onChange={(e) => setFormData({ ...formData, details: e.target.value })}
                 className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
-                placeholder={t('showCodePlaceholder')}
+                placeholder="Optional"
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('showType')}</label>
-              <select
-                value={formData.showType}
-                onChange={(e) => setFormData({ ...formData, showType: e.target.value })}
-                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
-              >
-                {showTypes.map(tp => <option key={tp} value={tp}>{tTypes(tp)}</option>)}
-              </select>
             </div>
           </div>
           <button type="submit" className="mt-4 bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
@@ -208,7 +194,7 @@ export default function RallyDetailPage() {
             return (
               <Link
                 key={show.id}
-                href={`/${locale}/rallies/${rallyId}/shows/${show.id}`}
+                href={`/${locale}/rallies/${rally_id}/shows/${show.id}`}
                 className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow border border-gray-200 dark:border-gray-700 hover:border-purple-400 hover:shadow-lg transition-all group"
               >
                 <div className="flex items-start justify-between mb-2">
@@ -216,11 +202,8 @@ export default function RallyDetailPage() {
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400">
                       {show.name}
                     </h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{t('showCode')}: {show.code}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">#{show.show_number} {show.details ? `· ${show.details}` : ''}</p>
                   </div>
-                  <span className="px-2 py-1 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 rounded-full text-xs font-medium">
-                    {tTypes(show.showType as 'regular')}
-                  </span>
                 </div>
                 <div className="flex gap-4 text-sm text-gray-500 dark:text-gray-400">
                   <span>👥 {participants} {t('participants')}</span>

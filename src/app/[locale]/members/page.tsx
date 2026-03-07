@@ -2,23 +2,23 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
+import { getSupabaseClient } from '@/lib/supabase'
 
 interface Member {
   id: number
-  numericCode: number
-  covetName: string
-  ownerName: string
+  cuenta: string
+  nombre: string
   role: string
-  activeFrom: string
-  activeTo: string | null
-  houseId: number
-  house: { id: number; name: string; covetName: string }
+  fecha_ingreso: string
+  fecha_salida: string | null
+  user_id?: string | null
+  house_id: number
+  houses: { id: number; name: string } | null
 }
 
 interface House {
   id: number
   name: string
-  covetName: string
 }
 
 const ROLES = ['owner', 'manager', 'member'] as const
@@ -36,25 +36,25 @@ export default function MembersPage() {
   const [houses, setHouses] = useState<House[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
-  const [showTransfer, setShowTransfer] = useState<number | null>(null)
-  const [error, setError] = useState('')
-  const [filterHouse, setFilterHouse] = useState('')
-  const [filterActive, setFilterActive] = useState(true)
-  const [formData, setFormData] = useState({
-    numericCode: '',
-    covetName: '',
-    ownerName: '',
+  const [show_transfer, set_show_transfer] = useState<number | null>(null)
+  const [error, set_error] = useState('')
+  const [current_user_id, set_current_user_id] = useState<string | null>(null)
+  const [filter_house, set_filter_house] = useState('')
+  const [filter_active, set_filter_active] = useState(true)
+  const [form_data, set_form_data] = useState({
+    cuenta: '',
+    nombre: '',
     role: 'member',
-    houseId: '',
-    activeFrom: new Date().toISOString().split('T')[0]
+    house_id: '',
+    fecha_ingreso: new Date().toISOString().split('T')[0]
   })
-  const [transferHouseId, setTransferHouseId] = useState('')
+  const [transfer_house_id, set_transfer_house_id] = useState('')
 
   const fetchData = useCallback(async () => {
     try {
       const params = new URLSearchParams()
-      if (filterHouse) params.set('houseId', filterHouse)
-      if (filterActive) params.set('activeOnly', 'true')
+      if (filter_house) params.set('house_id', filter_house)
+      if (filter_active) params.set('active_only', 'true')
       const [membersRes, housesRes] = await Promise.all([
         fetch(`/api/members?${params}`),
         fetch('/api/houses')
@@ -62,33 +62,83 @@ export default function MembersPage() {
       setMembers(await membersRes.json())
       setHouses(await housesRes.json())
     } catch {
-      setError(t('loadError'))
+      set_error(t('loadError'))
     } finally {
       setLoading(false)
     }
-  }, [filterHouse, filterActive])
+  }, [filter_house, filter_active])
 
   useEffect(() => { fetchData() }, [fetchData])
 
+  useEffect(() => {
+    let mounted = true
+
+    const loadCurrentUser = async () => {
+      const supabase = getSupabaseClient()
+      if (!supabase) return
+      const { data } = await supabase.auth.getSession()
+      if (mounted) {
+        set_current_user_id(data.session?.user.id ?? null)
+      }
+    }
+
+    loadCurrentUser()
+    return () => {
+      mounted = false
+    }
+  }, [])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError('')
+    set_error('')
     try {
+      const supabase = getSupabaseClient()
+      if (!supabase) {
+        set_error('Supabase client is not configured')
+        return
+      }
+
+      const { data: sessionData } = await supabase.auth.getSession()
+      const accessToken = sessionData.session?.access_token
+      if (!accessToken) {
+        set_error('You must be authenticated to create a member')
+        return
+      }
+
       const res = await fetch('/api/members', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`
+        },
+        body: JSON.stringify(form_data)
       })
       if (!res.ok) {
         const d = await res.json()
-        setError(d.error || t('createError'))
+        set_error(d.error || t('createError'))
         return
       }
-      setFormData({ numericCode: '', covetName: '', ownerName: '', role: 'member', houseId: '', activeFrom: new Date().toISOString().split('T')[0] })
+      set_form_data({ cuenta: '', nombre: '', role: 'member', house_id: '', fecha_ingreso: new Date().toISOString().split('T')[0] })
       setShowForm(false)
       fetchData()
     } catch {
-      setError(t('createError'))
+      set_error(t('createError'))
+    }
+  }
+
+  const withAuthHeaders = async () => {
+    const supabase = getSupabaseClient()
+    if (!supabase) {
+      return {
+        'Content-Type': 'application/json'
+      }
+    }
+
+    const { data: sessionData } = await supabase.auth.getSession()
+    const accessToken = sessionData.session?.access_token
+    return {
+      'Content-Type': 'application/json',
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {})
     }
   }
 
@@ -97,35 +147,66 @@ export default function MembersPage() {
     try {
       await fetch(`/api/members/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ activeTo: new Date().toISOString() })
+        headers: await withAuthHeaders(),
+        body: JSON.stringify({ fecha_salida: new Date().toISOString() })
       })
       fetchData()
     } catch {
-      setError(t('updateError'))
+      set_error(t('updateError'))
+    }
+  }
+
+  const linkMemberToCurrentUser = async (id: number) => {
+    set_error('')
+    try {
+      const supabase = getSupabaseClient()
+      if (!supabase) {
+        set_error('Supabase client is not configured')
+        return
+      }
+
+      const { data: sessionData } = await supabase.auth.getSession()
+      const accessToken = sessionData.session?.access_token
+      if (!accessToken) {
+        set_error('You must be authenticated to link a member')
+        return
+      }
+
+      const res = await fetch(`/api/members/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({ linkCurrentUser: true })
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        set_error(data.error || t('updateError'))
+        return
+      }
+
+      fetchData()
+    } catch {
+      set_error(t('updateError'))
     }
   }
 
   const transferMember = async (id: number) => {
-    if (!transferHouseId) return
+    if (!transfer_house_id) return
     try {
       await fetch(`/api/members/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ houseId: parseInt(transferHouseId) })
+        headers: await withAuthHeaders(),
+        body: JSON.stringify({ house_id: parseInt(transfer_house_id) })
       })
-      setShowTransfer(null)
-      setTransferHouseId('')
+      set_show_transfer(null)
+      set_transfer_house_id('')
       fetchData()
     } catch {
-      setError(t('updateError'))
+      set_error(t('updateError'))
     }
-  }
-
-  const suggestNumericCode = () => {
-    if (members.length === 0) return '1001'
-    const maxCode = Math.max(...members.map(m => m.numericCode))
-    return String(maxCode + 1)
   }
 
   if (loading) return (
@@ -141,7 +222,6 @@ export default function MembersPage() {
         <button
           onClick={() => {
             setShowForm(!showForm)
-            if (!showForm) setFormData(prev => ({ ...prev, numericCode: suggestNumericCode() }))
           }}
           className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
         >
@@ -155,12 +235,26 @@ export default function MembersPage() {
         </div>
       )}
 
+      <div className="bg-blue-50 border border-blue-200 text-blue-900 rounded-lg px-4 py-3 mb-4 text-sm flex flex-wrap items-center gap-3">
+        <span className="font-semibold">Authenticated UUID:</span>
+        <code className="break-all">{current_user_id ?? 'No active session'}</code>
+        {current_user_id && (
+          <button
+            type="button"
+            onClick={() => navigator.clipboard.writeText(current_user_id)}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs font-medium"
+          >
+            Copy UUID
+          </button>
+        )}
+      </div>
+
       <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow mb-6 border border-gray-200 dark:border-gray-700 flex flex-wrap gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('filterByHouse')}</label>
           <select
-            value={filterHouse}
-            onChange={(e) => setFilterHouse(e.target.value)}
+            value={filter_house}
+            onChange={(e) => set_filter_house(e.target.value)}
             className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
           >
             <option value="">{t('allHouses')}</option>
@@ -173,8 +267,8 @@ export default function MembersPage() {
           <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
-              checked={filterActive}
-              onChange={(e) => setFilterActive(e.target.checked)}
+              checked={filter_active}
+              onChange={(e) => set_filter_active(e.target.checked)}
               className="w-4 h-4 text-purple-600"
             />
             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('activeOnly')}</span>
@@ -187,23 +281,12 @@ export default function MembersPage() {
           <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">{t('addNewMember')}</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('numericCode')}</label>
-              <input
-                type="number"
-                required
-                value={formData.numericCode}
-                onChange={(e) => setFormData({ ...formData, numericCode: e.target.value })}
-                placeholder={t('numericCodePlaceholder')}
-                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
-              />
-            </div>
-            <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('covetName')}</label>
               <input
                 type="text"
                 required
-                value={formData.covetName}
-                onChange={(e) => setFormData({ ...formData, covetName: e.target.value })}
+                value={form_data.cuenta}
+                onChange={(e) => set_form_data({ ...form_data, cuenta: e.target.value })}
                 placeholder={t('covetNamePlaceholder')}
                 className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
               />
@@ -213,8 +296,8 @@ export default function MembersPage() {
               <input
                 type="text"
                 required
-                value={formData.ownerName}
-                onChange={(e) => setFormData({ ...formData, ownerName: e.target.value })}
+                value={form_data.nombre}
+                onChange={(e) => set_form_data({ ...form_data, nombre: e.target.value })}
                 placeholder={t('ownerNamePlaceholder')}
                 className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
               />
@@ -222,8 +305,8 @@ export default function MembersPage() {
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{tc('role')}</label>
               <select
-                value={formData.role}
-                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                value={form_data.role}
+                onChange={(e) => set_form_data({ ...form_data, role: e.target.value })}
                 className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
               >
                 {ROLES.map(r => <option key={r} value={r}>{t(`roles.${r}`)}</option>)}
@@ -233,8 +316,8 @@ export default function MembersPage() {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{tc('house')}</label>
               <select
                 required
-                value={formData.houseId}
-                onChange={(e) => setFormData({ ...formData, houseId: e.target.value })}
+                value={form_data.house_id}
+                onChange={(e) => set_form_data({ ...form_data, house_id: e.target.value })}
                 className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
               >
                 <option value="">{t('allHouses')}</option>
@@ -246,8 +329,8 @@ export default function MembersPage() {
               <input
                 type="date"
                 required
-                value={formData.activeFrom}
-                onChange={(e) => setFormData({ ...formData, activeFrom: e.target.value })}
+                value={form_data.fecha_ingreso}
+                onChange={(e) => set_form_data({ ...form_data, fecha_ingreso: e.target.value })}
                 className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
               />
             </div>
@@ -268,10 +351,10 @@ export default function MembersPage() {
           <table className="w-full">
             <thead className="bg-gray-50 dark:bg-gray-700">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">{t('numericCode')}</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">{tc('member')}</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">{tc('role')}</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">{tc('house')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Auth UUID</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">{t('activeFrom')}</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">{t('actions.transfer')}/{t('actions.remove')}</th>
               </tr>
@@ -279,29 +362,46 @@ export default function MembersPage() {
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {members.map((member) => (
                 <tr key={member.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                  <td className="px-4 py-3 text-sm font-mono text-gray-600 dark:text-gray-300">#{member.numericCode}</td>
                   <td className="px-4 py-3">
-                    <div className="text-sm font-medium text-gray-900 dark:text-white">{member.covetName}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">{member.ownerName}</div>
+                    <div className="text-sm font-medium text-gray-900 dark:text-white">{member.cuenta}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">{member.nombre}</div>
                   </td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${ROLE_COLORS[member.role] || ROLE_COLORS.member}`}>
                       {t(`roles.${member.role as 'owner' | 'manager' | 'member'}`)}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">{member.house.name}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">{member.houses?.name ?? '-'}</td>
+                  <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-300">
+                    {member.user_id ? (
+                      <code className="break-all">{member.user_id}</code>
+                    ) : (
+                      <span className="text-amber-600 font-medium">Not linked</span>
+                    )}
+                    {current_user_id && member.user_id !== current_user_id && !member.fecha_salida && (
+                      <div className="mt-2">
+                        <button
+                          type="button"
+                          onClick={() => linkMemberToCurrentUser(member.id)}
+                          className="text-xs bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded"
+                        >
+                          Link to my user
+                        </button>
+                      </div>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
-                    {new Date(member.activeFrom).toLocaleDateString()}
-                    {member.activeTo && (
-                      <span className="ml-1 text-xs text-red-500">→ {new Date(member.activeTo).toLocaleDateString()}</span>
+                    {new Date(member.fecha_ingreso).toLocaleDateString()}
+                    {member.fecha_salida && (
+                      <span className="ml-1 text-xs text-red-500">→ {new Date(member.fecha_salida).toLocaleDateString()}</span>
                     )}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      {!member.activeTo && (
+                      {!member.fecha_salida && (
                         <>
                           <button
-                            onClick={() => setShowTransfer(showTransfer === member.id ? null : member.id)}
+                            onClick={() => set_show_transfer(show_transfer === member.id ? null : member.id)}
                             className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 font-medium"
                           >
                             {t('actions.transfer')}
@@ -315,15 +415,15 @@ export default function MembersPage() {
                         </>
                       )}
                     </div>
-                    {showTransfer === member.id && (
+                    {show_transfer === member.id && (
                       <div className="mt-2 flex items-center gap-2">
                         <select
-                          value={transferHouseId}
-                          onChange={(e) => setTransferHouseId(e.target.value)}
+                          value={transfer_house_id}
+                          onChange={(e) => set_transfer_house_id(e.target.value)}
                           className="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                         >
                           <option value="">{t('transferTo')}</option>
-                          {houses.filter(h => h.id !== member.houseId).map(h => (
+                          {houses.filter(h => h.id !== member.house_id).map(h => (
                             <option key={h.id} value={h.id}>{h.name}</option>
                           ))}
                         </select>

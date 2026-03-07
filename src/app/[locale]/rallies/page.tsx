@@ -9,7 +9,7 @@ interface Rally {
   name: string
   month: number
   year: number
-  houseId: number
+  house_id: number
   house: { id: number; name: string }
   _count: { shows: number }
   createdAt: string
@@ -18,7 +18,6 @@ interface Rally {
 interface House {
   id: number
   name: string
-  covetName: string
 }
 
 export default function RalliesPage() {
@@ -37,7 +36,7 @@ export default function RalliesPage() {
     name: '',
     month: String(new Date().getMonth() + 1),
     year: String(new Date().getFullYear()),
-    houseId: ''
+    house_id: ''
   })
 
   const months = Array.from({ length: 12 }, (_, i) => ({
@@ -47,7 +46,7 @@ export default function RalliesPage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const params = filterHouse ? `?houseId=${filterHouse}` : ''
+      const params = filterHouse ? `?house_id=${filterHouse}` : ''
       const [ralliesRes, housesRes] = await Promise.all([
         fetch(`/api/rallies${params}`),
         fetch('/api/houses')
@@ -77,7 +76,7 @@ export default function RalliesPage() {
         setError(d.error || t('createError'))
         return
       }
-      setFormData({ name: '', month: String(new Date().getMonth() + 1), year: String(new Date().getFullYear()), houseId: '' })
+      setFormData({ name: '', month: String(new Date().getMonth() + 1), year: String(new Date().getFullYear()), house_id: '' })
       setShowForm(false)
       fetchData()
     } catch {
@@ -168,8 +167,8 @@ export default function RalliesPage() {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{tc('house')}</label>
               <select
                 required
-                value={formData.houseId}
-                onChange={(e) => setFormData({ ...formData, houseId: e.target.value })}
+                value={formData.house_id}
+                onChange={(e) => setFormData({ ...formData, house_id: e.target.value })}
                 className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
               >
                 <option value="">{t('selectHouse')}</option>

@@ -3,92 +3,123 @@ import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
 async function main() {
-  const house1 = await prisma.house.create({
+  const today = new Date()
+  const currentMonthLabel = today.toLocaleString('en-US', { month: 'long' })
+
+  // Clear child tables first to satisfy foreign key constraints.
+  await prisma.participations.deleteMany()
+  await prisma.directivos.deleteMany()
+  await prisma.shows.deleteMany()
+  await prisma.rallies.deleteMany()
+  await prisma.members.deleteMany()
+  await prisma.houses.deleteMany()
+  await prisma.brands.deleteMany()
+
+  const brand = await prisma.brands.create({
     data: {
-      name: 'House of Glamour',
-      covetName: 'GlamourHouse',
-      ownerName: 'Victoria',
-      isActive: true
+      name: 'Covet Elite',
+      description: 'Primary brand seeded for local development.'
     }
   })
 
-  const house2 = await prisma.house.create({
+  const house1 = await prisma.houses.create({
     data: {
+      brand_id: brand.id,
+      name: 'House of Glamour',
+      description: 'Main competitive house'
+    }
+  })
+
+  const house2 = await prisma.houses.create({
+    data: {
+      brand_id: brand.id,
       name: 'Fashion Empire',
-      covetName: 'FashionEmpire',
-      ownerName: 'Isabella',
-      isActive: true
+      description: 'Second seeded house'
     }
   })
 
   const members1 = await Promise.all([
-    prisma.member.create({ data: { numericCode: 1001, covetName: 'VictoriaStyle', ownerName: 'Victoria', role: 'owner', houseId: house1.id } }),
-    prisma.member.create({ data: { numericCode: 1002, covetName: 'GlamourQueen', ownerName: 'Sophie', role: 'manager', houseId: house1.id } }),
-    prisma.member.create({ data: { numericCode: 1003, covetName: 'FashionIcon', ownerName: 'Emma', role: 'member', houseId: house1.id } }),
-    prisma.member.create({ data: { numericCode: 1004, covetName: 'StyleStar', ownerName: 'Olivia', role: 'member', houseId: house1.id } }),
-    prisma.member.create({ data: { numericCode: 1005, covetName: 'TrendSetter', ownerName: 'Ava', role: 'member', houseId: house1.id } }),
+    prisma.members.create({ data: { house_id: house1.id, cuenta: 'VictoriaStyle', nombre: 'Victoria', activo: true, fecha_ingreso: today } }),
+    prisma.members.create({ data: { house_id: house1.id, cuenta: 'GlamourQueen', nombre: 'Sophie', activo: true, fecha_ingreso: today } }),
+    prisma.members.create({ data: { house_id: house1.id, cuenta: 'FashionIcon', nombre: 'Emma', activo: true, fecha_ingreso: today } }),
+    prisma.members.create({ data: { house_id: house1.id, cuenta: 'StyleStar', nombre: 'Olivia', activo: true, fecha_ingreso: today } }),
+    prisma.members.create({ data: { house_id: house1.id, cuenta: 'TrendSetter', nombre: 'Ava', activo: true, fecha_ingreso: today } })
   ])
 
   const members2 = await Promise.all([
-    prisma.member.create({ data: { numericCode: 2001, covetName: 'EmpressIsabella', ownerName: 'Isabella', role: 'owner', houseId: house2.id } }),
-    prisma.member.create({ data: { numericCode: 2002, covetName: 'CoutureKing', ownerName: 'James', role: 'manager', houseId: house2.id } }),
-    prisma.member.create({ data: { numericCode: 2003, covetName: 'VogueVixen', ownerName: 'Charlotte', role: 'member', houseId: house2.id } }),
-    prisma.member.create({ data: { numericCode: 2004, covetName: 'RunwayRose', ownerName: 'Amelia', role: 'member', houseId: house2.id } }),
-    prisma.member.create({ data: { numericCode: 2005, covetName: 'ChicCharlotte', ownerName: 'Grace', role: 'member', houseId: house2.id } }),
+    prisma.members.create({ data: { house_id: house2.id, cuenta: 'EmpressIsabella', nombre: 'Isabella', activo: true, fecha_ingreso: today } }),
+    prisma.members.create({ data: { house_id: house2.id, cuenta: 'CoutureKing', nombre: 'James', activo: true, fecha_ingreso: today } }),
+    prisma.members.create({ data: { house_id: house2.id, cuenta: 'VogueVixen', nombre: 'Charlotte', activo: true, fecha_ingreso: today } }),
+    prisma.members.create({ data: { house_id: house2.id, cuenta: 'RunwayRose', nombre: 'Amelia', activo: true, fecha_ingreso: today } }),
+    prisma.members.create({ data: { house_id: house2.id, cuenta: 'ChicCharlotte', nombre: 'Grace', activo: true, fecha_ingreso: today } })
   ])
 
-  const currentMonth = new Date().getMonth() + 1
-  const currentYear = new Date().getFullYear()
+  await prisma.directivos.createMany({
+    data: [
+      { house_id: house1.id, member_id: members1[0].id, role: 'owner' },
+      { house_id: house1.id, member_id: members1[1].id, role: 'manager' },
+      { house_id: house2.id, member_id: members2[0].id, role: 'owner' },
+      { house_id: house2.id, member_id: members2[1].id, role: 'manager' }
+    ]
+  })
 
-  const rally1 = await prisma.rally.create({
+  const rally = await prisma.rallies.create({
     data: {
-      name: `Glamour House Rally - ${currentMonth}/${currentYear}`,
-      month: currentMonth,
-      year: currentYear,
-      houseId: house1.id
+      brand_id: brand.id,
+      month: currentMonthLabel,
+      rally_number: 1,
+      start_day: 1,
+      end_day: 28,
+      slot_ini: 'A',
+      slot_fin: 'F'
     }
   })
 
-  const show1 = await prisma.show.create({ data: { name: 'Winter Gala', code: 'WG01', showType: 'regular', rallyId: rally1.id } })
-  const show2 = await prisma.show.create({ data: { name: 'Holiday Special', code: 'HS01', showType: 'special', rallyId: rally1.id } })
-
-  await Promise.all(members1.map((m, i) => prisma.score.create({
+  const show1 = await prisma.shows.create({
     data: {
-      showId: show1.id,
-      memberId: m.id,
-      score: 85 + i * 3,
-      annotation: i === 3 ? "didn't participate" : null
-    }
-  })))
-
-  await Promise.all(members1.map((m, i) => prisma.score.create({
-    data: {
-      showId: show2.id,
-      memberId: m.id,
-      score: 90 + i * 2,
-      annotation: null
-    }
-  })))
-
-  const rally2 = await prisma.rally.create({
-    data: {
-      name: `Fashion Empire Rally - ${currentMonth}/${currentYear}`,
-      month: currentMonth,
-      year: currentYear,
-      houseId: house2.id
+      rally_id: rally.id,
+      show_number: 1,
+      name: 'Winter Gala',
+      details: 'Regular challenge'
     }
   })
 
-  const show3 = await prisma.show.create({ data: { name: 'Spring Collection', code: 'SC01', showType: 'regular', rallyId: rally2.id } })
-
-  await Promise.all(members2.map((m, i) => prisma.score.create({
+  const show2 = await prisma.shows.create({
     data: {
-      showId: show3.id,
-      memberId: m.id,
-      score: 88 + i * 4,
-      annotation: null
+      rally_id: rally.id,
+      show_number: 2,
+      name: 'Holiday Special',
+      details: 'Special challenge'
     }
-  })))
+  })
+
+  await Promise.all(
+    members1.map((member, index) =>
+      prisma.participations.create({
+        data: {
+          member_id: member.id,
+          show_id: show1.id,
+          status: index === 3 ? 'absent' : 'participated',
+          points: index === 3 ? 0 : 85 + index * 3,
+          notes: index === 3 ? 'did not participate' : null
+        }
+      })
+    )
+  )
+
+  await Promise.all(
+    members2.map((member, index) =>
+      prisma.participations.create({
+        data: {
+          member_id: member.id,
+          show_id: show2.id,
+          status: 'participated',
+          points: 88 + index * 4,
+          notes: null
+        }
+      })
+    )
+  )
 
   console.log('Seed completed successfully!')
 }

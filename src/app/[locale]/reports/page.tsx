@@ -9,19 +9,19 @@ interface House {
 }
 
 interface ReportData {
-  totalShows: number
-  totalParticipants: number
-  topScorer: { member: { covetName: string; ownerName: string }; total: number } | null
-  showBreakdown: {
-    showId: number
-    showName: string
-    showCode: string
-    showType: string
-    rallyName: string
-    totalScore: number
-    participantCount: number
+  total_shows: number
+  total_participants: number
+  top_scorer: { member: { cuenta: string; nombre: string }; total: number } | null
+  show_breakdown: {
+    show_id: number
+    show_name: string
+    show_code: string
+    show_type: string
+    rally_name: string
+    total_score: number
+    participant_count: number
   }[]
-  rallies: { id: number; name: string; showCount: number }[]
+  rallies: { id: number; name: string; show_count: number }[]
 }
 
 export default function ReportsPage() {
@@ -35,7 +35,7 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [filters, setFilters] = useState({
-    houseId: '',
+    house_id: '',
     month: String(new Date().getMonth() + 1),
     year: String(new Date().getFullYear())
   })
@@ -50,7 +50,7 @@ export default function ReportsPage() {
   }, [])
 
   const generateReport = async () => {
-    if (!filters.houseId) {
+    if (!filters.house_id) {
       setError(t('fillHouse'))
       return
     }
@@ -83,8 +83,8 @@ export default function ReportsPage() {
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{tc('house')}</label>
             <select
-              value={filters.houseId}
-              onChange={(e) => setFilters({ ...filters, houseId: e.target.value })}
+              value={filters.house_id}
+              onChange={(e) => setFilters({ ...filters, house_id: e.target.value })}
               className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
             >
               <option value="">{t('selectHouse')}</option>
@@ -130,19 +130,19 @@ export default function ReportsPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow border border-gray-200 dark:border-gray-700 text-center">
-              <div className="text-3xl font-bold text-purple-600 mb-1">{report.totalShows}</div>
+              <div className="text-3xl font-bold text-purple-600 mb-1">{report.total_shows}</div>
               <div className="text-sm text-gray-500 dark:text-gray-400">{t('totalShows')}</div>
             </div>
             <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow border border-gray-200 dark:border-gray-700 text-center">
-              <div className="text-3xl font-bold text-purple-600 mb-1">{report.totalParticipants}</div>
+              <div className="text-3xl font-bold text-purple-600 mb-1">{report.total_participants}</div>
               <div className="text-sm text-gray-500 dark:text-gray-400">{t('uniqueParticipants')}</div>
             </div>
-            {report.topScorer && (
+            {report.top_scorer && (
               <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-xl p-5 shadow border border-yellow-300 dark:border-yellow-700 text-center">
                 <div className="text-lg font-bold text-yellow-700 dark:text-yellow-400 mb-1">
-                  🏆 {report.topScorer.member.covetName}
+                  🏆 {report.top_scorer.member.cuenta}
                 </div>
-                <div className="text-sm text-yellow-600 dark:text-yellow-500">{report.topScorer.total.toFixed(0)} {tc('points')}</div>
+                <div className="text-sm text-yellow-600 dark:text-yellow-500">{report.top_scorer.total.toFixed(0)} {tc('points')}</div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t('topScorer')}</div>
               </div>
             )}
@@ -157,7 +157,7 @@ export default function ReportsPage() {
                 {report.rallies.map(r => (
                   <div key={r.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                     <span className="text-sm font-medium text-gray-900 dark:text-white">{r.name}</span>
-                    <span className="text-sm text-gray-500 dark:text-gray-400">{r.showCount} {tc('shows')}</span>
+                    <span className="text-sm text-gray-500 dark:text-gray-400">{r.show_count} {tc('shows')}</span>
                   </div>
                 ))}
               </div>
@@ -168,7 +168,7 @@ export default function ReportsPage() {
             <div className="p-5 border-b border-gray-200 dark:border-gray-700">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('showBreakdown')}</h3>
             </div>
-            {report.showBreakdown.length === 0 ? (
+            {report.show_breakdown.length === 0 ? (
               <div className="p-5 text-gray-500">{t('noShows')}</div>
             ) : (
               <table className="w-full">
@@ -182,20 +182,20 @@ export default function ReportsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {report.showBreakdown.map(show => (
-                    <tr key={show.showId} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                  {report.show_breakdown.map(show => (
+                    <tr key={show.show_id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                       <td className="px-4 py-3">
-                        <div className="text-sm font-medium text-gray-900 dark:text-white">{show.showName}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">{show.showCode}</div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">{show.show_name}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">{show.show_code}</div>
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">{show.rallyName}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">{show.rally_name}</td>
                       <td className="px-4 py-3">
                         <span className="px-2 py-1 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 rounded-full text-xs">
-                          {tTypes(show.showType as 'regular')}
+                          {tTypes(show.show_type as 'regular')}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300 text-right">{show.participantCount}</td>
-                      <td className="px-4 py-3 text-sm font-semibold text-purple-600 dark:text-purple-400 text-right">{show.totalScore.toFixed(0)}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300 text-right">{show.participant_count}</td>
+                      <td className="px-4 py-3 text-sm font-semibold text-purple-600 dark:text-purple-400 text-right">{show.total_score.toFixed(0)}</td>
                     </tr>
                   ))}
                 </tbody>

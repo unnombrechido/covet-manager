@@ -6,16 +6,15 @@ import { useTranslations } from 'next-intl'
 interface House {
   id: number
   name: string
-  covetName: string
 }
 
 interface MVPEntry {
   member: {
-    id: number
-    covetName: string
-    ownerName: string
+    member_id: number
+    cuenta: string
+    nombre: string
     role: string
-    numericCode: number
+    house_id: number | null
   }
   total: number
 }
@@ -32,7 +31,7 @@ export default function MVPPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [filters, setFilters] = useState({
-    houseId: '',
+    house_id: '',
     month: String(new Date().getMonth() + 1),
     year: String(new Date().getFullYear()),
     excludeOwner: false,
@@ -49,7 +48,7 @@ export default function MVPPage() {
   }, [])
 
   const fetchMVP = async () => {
-    if (!filters.houseId || !filters.month || !filters.year) {
+    if (!filters.house_id || !filters.month || !filters.year) {
       setError(t('fillFilters'))
       return
     }
@@ -60,7 +59,7 @@ export default function MVPPage() {
       if (filters.excludeOwner) excludeRoles.push('owner')
       if (filters.excludeManagers) excludeRoles.push('manager')
       const params = new URLSearchParams({
-        houseId: filters.houseId,
+        house_id: filters.house_id,
         month: filters.month,
         year: filters.year,
         ...(excludeRoles.length > 0 ? { excludeRoles: excludeRoles.join(',') } : {})
@@ -90,8 +89,8 @@ export default function MVPPage() {
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{tc('house')}</label>
             <select
-              value={filters.houseId}
-              onChange={(e) => setFilters({ ...filters, houseId: e.target.value })}
+              value={filters.house_id}
+              onChange={(e) => setFilters({ ...filters, house_id: e.target.value })}
               className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
             >
               <option value="">{t('selectHouse')}</option>
@@ -146,7 +145,7 @@ export default function MVPPage() {
           </h2>
           {rankings.map((entry, index) => (
             <div
-              key={entry.member.id}
+              key={entry.member.member_id}
               className={`bg-white dark:bg-gray-800 rounded-xl p-4 shadow border transition-all ${
                 index === 0
                   ? 'border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20'
@@ -159,11 +158,11 @@ export default function MVPPage() {
                 </div>
                 <div className="flex-1">
                   <div className={`text-lg font-semibold ${index === 0 ? 'text-yellow-800 dark:text-yellow-300' : 'text-gray-900 dark:text-white'}`}>
-                    {entry.member.covetName}
+                    {entry.member.cuenta}
                     {index === 0 && <span className="ml-2 text-sm font-medium bg-yellow-400 text-yellow-900 px-2 py-0.5 rounded-full">{t('mvpBadge')}</span>}
                   </div>
                   <div className="text-sm text-gray-500 dark:text-gray-400">
-                    {entry.member.ownerName} · #{entry.member.numericCode} · {entry.member.role}
+                    {entry.member.nombre} · #{entry.member.member_id} · {entry.member.role}
                   </div>
                 </div>
                 <div className={`text-2xl font-bold ${index === 0 ? 'text-yellow-600 dark:text-yellow-400' : 'text-purple-600 dark:text-purple-400'}`}>
@@ -176,7 +175,7 @@ export default function MVPPage() {
         </div>
       )}
 
-      {rankings.length === 0 && !loading && filters.houseId && (
+      {rankings.length === 0 && !loading && filters.house_id && (
         <div className="text-center py-16 text-gray-500">
           <div className="text-5xl mb-4">⭐</div>
           <p className="text-lg">{t('noData')}</p>
